@@ -15,10 +15,14 @@
     <AssemblyName>BoBIPet</AssemblyName>
     <Product>BoBIPet</Product>
     <Title>BoBIPet</Title>
-    <Version>3.0.7</Version>
-    <AssemblyVersion>3.0.7.0</AssemblyVersion>
-    <FileVersion>3.0.7.0</FileVersion>
+    <Version>3.0.8</Version>
+    <AssemblyVersion>3.0.8.0</AssemblyVersion>
+    <FileVersion>3.0.8.0</FileVersion>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AnalysisServices.NetCore.retail.amd64" Version="19.84.1" />
+  </ItemGroup>
 
   <ItemGroup>
     <Compile Remove="Contracts.Tests.cs" />
