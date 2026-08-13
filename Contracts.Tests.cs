@@ -9,6 +9,8 @@ static class ContractTests
         Assert(BridgeCore.IsAllowedRoute("/health", "GET"), "GET /health hợp lệ");
         Assert(!BridgeCore.IsAllowedRoute("/powerbi/powershell", "POST"), "powershell route bị cấm");
         Assert(BridgeCore.BuildReleaseAssetUrl("v1.2.3", "BoPowerBIPet-win-x64.zip") == "https://github.com/hoanghaole/bo-powerbi-pet/releases/download/v1.2.3/BoPowerBIPet-win-x64.zip", "release URL đúng");
+        var program = File.ReadAllText(Path.Combine(Directory.GetCurrentDirectory(), "Program.cs"));
+        Assert(program.Contains("static class Program") && program.Contains("[STAThread]") && program.Contains("static void Main()"), "WinForms entry point có STAThread");
 
         var headers = new WebHeaderCollection
         {
