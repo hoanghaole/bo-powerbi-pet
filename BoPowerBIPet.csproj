@@ -15,9 +15,9 @@
     <AssemblyName>BoBIPet</AssemblyName>
     <Product>BoBIPet</Product>
     <Title>BoBIPet</Title>
-    <Version>3.0.6</Version>
-    <AssemblyVersion>3.0.6.0</AssemblyVersion>
-    <FileVersion>3.0.6.0</FileVersion>
+    <Version>3.0.7</Version>
+    <AssemblyVersion>3.0.7.0</AssemblyVersion>
+    <FileVersion>3.0.7.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
