@@ -22,8 +22,7 @@ internal static class HrSampleService
     internal static SampleResult ApplyDeterministicSample()
     {
         var pbiBin = FindPowerBiDesktopBin();
-        var tomPath = Path.Combine(pbiBin, "Microsoft.AnalysisServices.Tabular.dll");
-        if (!File.Exists(tomPath)) throw new FileNotFoundException("Không tìm thấy Microsoft.AnalysisServices.Tabular.dll", tomPath);
+        var tomPath = FindTomAssembly(pbiBin);
 
         var asm = Assembly.LoadFrom(tomPath);
         dynamic server = Activator.CreateInstance(asm.GetType("Microsoft.AnalysisServices.Tabular.Server", true)!)!;
@@ -256,6 +255,23 @@ internal static class HrSampleService
             if (string.Equals(name, tableName, StringComparison.OrdinalIgnoreCase)) return item;
         }
         return null;
+    }
+
+    static string FindTomAssembly(string pbiBin)
+    {
+        var roots = new[] { pbiBin, Directory.GetParent(pbiBin)?.FullName }
+            .Where(x => !string.IsNullOrWhiteSpace(x) && Directory.Exists(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase);
+        foreach (var root in roots)
+        {
+            try
+            {
+                var path = Directory.EnumerateFiles(root!, "Microsoft.AnalysisServices.Tabular.dll", SearchOption.AllDirectories).FirstOrDefault();
+                if (path != null) return path;
+            }
+            catch (UnauthorizedAccessException) { }
+        }
+        throw new FileNotFoundException("Không tìm thấy Microsoft.AnalysisServices.Tabular.dll trong thư mục cài Power BI Desktop");
     }
 
     static string FindPowerBiDesktopBin()
