@@ -60,7 +60,7 @@ static class HrSampleServiceTests
         var appDir = BridgeCore.AppDir();
         Assert(Path.GetFileName(Path.Combine(appDir, "backups", "x.json")) == "x.json", "backup dir dưới %LOCALAPPDATA%\\BoBIPet\\backups");
         var json = JsonSerializer.Serialize(new[] { new { table = "HR Nhân viên", expression = "EVALUATE" } });
-        Assert(json.Contains("HR Nhân viên"), "backup json serialize được");
+        Assert(JsonSerializer.Deserialize<JsonElement>(json)[0].GetProperty("table").GetString() == "HR Nhân viên", "backup json serialize được");
     }
 
     static void Assert(bool ok, string message)
