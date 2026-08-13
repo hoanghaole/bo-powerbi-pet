@@ -53,6 +53,7 @@ Endpoint:
 - `GET /powerbi/listeners`
 - `GET /powerbi/model-summary`
 - `POST /powerbi/dax` với body JSON: `{"query":"EVALUATE ..."}`
+- `POST /powerbi/hr-sample` body rỗng hoặc JSON bất kỳ; endpoint tự kiểm tra 3 calculated tables `HR Nhân viên`, `HR Tuyển dụng`, `HR Đào tạo`, backup expression cũ vào `%LOCALAPPDATA%\BoBIPet\backups\*.json`, rồi thay bằng dữ liệu HR mẫu deterministic giữ nguyên schema/relationships/measures
 
 ## Cách chạy
 Sau khi cài, chạy `bobipet` hoặc `BoBIPet`. App hiển thị:
@@ -83,6 +84,8 @@ npm test
 ```
 
 ## Giới hạn còn lại
+- `POST /powerbi/hr-sample` phụ thuộc Power BI Desktop đang mở + `Microsoft.AnalysisServices.Tabular.dll` trong thư mục cài Power BI Desktop.
+- Endpoint HR sample chỉ hỗ trợ 3 table calculated có schema còn tương thích; nếu user đổi tên column/table thì endpoint sẽ từ chối trước khi `SaveChanges`.
 - Vẫn phụ thuộc Power BI Desktop + `Microsoft.PowerBI.AdomdClient.dll` trên máy user.
 - Chưa có chữ ký code.
 - npm wrapper dùng PowerShell `Expand-Archive` trên Windows; muốn bỏ phụ thuộc này thì thêm extractor stdlib/native khác.

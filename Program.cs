@@ -89,7 +89,7 @@ sealed class PetForm : Form
             StartBridge();
             Add($"Bridge: http://localhost:{port}");
             Add($"Token: {token}");
-            Add("Endpoint: GET /health, /powerbi/processes, /powerbi/listeners, /powerbi/model-summary; POST /powerbi/dax");
+            Add("Endpoint: GET /health, /powerbi/processes, /powerbi/listeners, /powerbi/model-summary; POST /powerbi/dax, /powerbi/hr-sample");
             string cf = await EnsureCloudflared();
             StartTunnel(cf);
             State($"Bridge chạy tại localhost:{port}. Đang lấy URL Cloudflare…");
@@ -154,6 +154,23 @@ sealed class PetForm : Form
                 var body = await ReadBody(c);
                 var q = JsonDocument.Parse(body).RootElement.GetProperty("query").GetString() ?? "";
                 await PsRawJson(c, Scripts.Dax(q), 120000);
+                return;
+            }
+            if (p == "/powerbi/hr-sample" && c.Request.HttpMethod == "POST")
+            {
+                var result = HrSampleService.ApplyDeterministicSample();
+                await Json(c, 200, new
+                {
+                    ok = true,
+                    data = new
+                    {
+                        employees = result.Employees,
+                        recruitments = result.Recruitments,
+                        trainings = result.Trainings,
+                        port = result.Port,
+                        backupPath = result.BackupPath
+                    }
+                });
                 return;
             }
             await Json(c, 404, new { ok = false, error = "not_found" });
