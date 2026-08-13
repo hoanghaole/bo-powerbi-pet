@@ -11,6 +11,7 @@ static class ContractTests
         Assert(BridgeCore.BuildReleaseAssetUrl("v1.2.3", "BoPowerBIPet-win-x64.zip") == "https://github.com/hoanghaole/bo-powerbi-pet/releases/download/v1.2.3/BoPowerBIPet-win-x64.zip", "release URL đúng");
         var program = File.ReadAllText(Path.Combine(Directory.GetCurrentDirectory(), "Program.cs"));
         Assert(program.Contains("static class Program") && program.Contains("[STAThread]") && program.Contains("static void Main()"), "WinForms entry point có STAThread");
+        Assert(program.Contains(@"Local\\BoBIPet.SingleInstance"), "chỉ cho phép một instance");
 
         var headers = new WebHeaderCollection
         {

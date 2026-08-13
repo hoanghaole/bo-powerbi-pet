@@ -17,7 +17,7 @@ try {
   $expected = ((Get-Content $sums -Raw) -split '\s+')[0].ToLowerInvariant()
   $actual = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
   if ($actual -ne $expected) { throw "SHA-256 không khớp: $actual" }
-  Get-Process BoBIPet -ErrorAction SilentlyContinue | Stop-Process -Force
+  Get-Process BoBIPet, BoPowerBIPet -ErrorAction SilentlyContinue | Stop-Process -Force
   New-Item -ItemType Directory -Force $dir | Out-Null
   Expand-Archive $zip -DestinationPath $dir -Force
   $exe = Join-Path $dir 'BoBIPet.exe'

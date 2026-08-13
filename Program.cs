@@ -10,8 +10,16 @@ static class Program
     [STAThread]
     static void Main()
     {
+        using var singleInstance = new Mutex(true, @"Local\BoBIPet.SingleInstance", out var createdNew);
+        if (!createdNew)
+        {
+            MessageBox.Show("BoBIPet đang chạy. Hãy mở cửa sổ hiện có.", "BoBIPet", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
         ApplicationConfiguration.Initialize();
         Application.Run(new PetForm());
+        GC.KeepAlive(singleInstance);
     }
 }
 
