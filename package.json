@@ -1,0 +1,19 @@
+{
+  "name": "bobipet",
+  "version": "3.0.0",
+  "description": "Windows installer/updater launcher for BoBIPet",
+  "license": "MIT",
+  "bin": {
+    "bobipet": "bin/bobipet.js",
+    "BoBIPet": "bin/bobipet.js"
+  },
+  "files": [
+    "bin/"
+  ],
+  "scripts": {
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

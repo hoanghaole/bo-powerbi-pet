@@ -1,0 +1,58 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Test contract
+        run: dotnet run --project BoPowerBIPet.Contracts.csproj
+
+      - name: Test npm wrapper
+        run: npm test
+
+      - name: Publish win-x64
+        run: dotnet publish BoPowerBIPet.csproj -c Release -r win-x64 -p:PublishSingleFile=true -p:SelfContained=true -o publish/win-x64
+
+      - name: Package
+        shell: pwsh
+        run: |
+          Compress-Archive -Path publish/win-x64/* -DestinationPath BoBIPet-win-x64.zip -Force
+          $hash = (Get-FileHash BoBIPet-win-x64.zip -Algorithm SHA256).Hash.ToLower()
+          Set-Content -Path SHA256SUMS -Value "$hash *BoBIPet-win-x64.zip" -NoNewline
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            BoBIPet-win-x64.zip
+            SHA256SUMS
+          generate_release_notes: true
+
+      - name: Publish npm
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
