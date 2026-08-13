@@ -89,9 +89,25 @@ static class PowerBiAuthoringServiceTests
             }
         };
         var m = PowerBiAuthoringService.BuildMTableExpression(columns, rows);
-        Assert(m.Contains("type table [\"Name\" = text"), "M expression typed schema");
+        Assert(m.Contains("type table [Name = text, Amount = number, CreatedAt = datetime, IsActive = logical]"), "M expression simple identifiers không bị quote như string literal");
         Assert(m.Contains("#datetime(2026,1,2,3,4,5)"), "M expression datetime literal");
         Assert(m.EndsWith(" in Source"), "M expression kết thúc hợp lệ");
+
+        var specialColumns = new List<DataColumn>
+        {
+            new() { Name = "Mã nhân viên", DataType = DataType.String },
+            new() { Name = "Tên \"hiển thị\"", DataType = DataType.String }
+        };
+        var specialRows = new List<IReadOnlyDictionary<string, object?>>
+        {
+            new Dictionary<string, object?>
+            {
+                ["Mã nhân viên"] = "EMP001",
+                ["Tên \"hiển thị\""] = "Alice"
+            }
+        };
+        var specialM = PowerBiAuthoringService.BuildMTableExpression(specialColumns, specialRows);
+        Assert(specialM.Contains("type table [#\"Mã nhân viên\" = text, #\"Tên \"\"hiển thị\"\"\" = text]"), "M expression special identifiers dùng quoted identifier đúng cú pháp M");
     }
 
     static void FingerprintContract()

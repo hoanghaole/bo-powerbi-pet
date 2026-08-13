@@ -54,7 +54,8 @@ static class HrSampleServiceTests
         Assert(data["HR Tuyển dụng"].All(x => data["HR Nhân viên"].Any(e => Equals(e["Mã nhân viên"], x["Mã nhân viên"]))), "recruitment join về employee");
         Assert(data["HR Đào tạo"].All(x => data["HR Nhân viên"].Any(e => Equals(e["Mã nhân viên"], x["Mã nhân viên"]))), "training join về employee");
         var m = HrSampleService.BuildMExpression(schemas[0], data["HR Nhân viên"]);
-        Assert(m.StartsWith("let Source = #table(type table [\"Mã nhân viên\" = text"), "M expression có let/in và quoted identifiers");
+        Assert(m.StartsWith("let Source = #table(type table [#\"Mã nhân viên\" = text"), "M expression có let/in và quoted identifier đúng cú pháp M");
+        Assert(m.Contains("#\"Tên nhân viên\" = text"), "cột có khoảng trắng dùng quoted identifier");
         Assert(m.EndsWith(" in Source"), "M expression kết thúc hợp lệ");
     }
 

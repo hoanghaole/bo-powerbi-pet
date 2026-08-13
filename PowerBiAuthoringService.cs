@@ -759,19 +759,31 @@ internal static class PowerBiAuthoringService
 
     internal static string BuildMTableExpression(IReadOnlyList<DataColumn> columns, IReadOnlyList<IReadOnlyDictionary<string, object?>> rows)
     {
-        static string Q(string value) => "\"" + value.Replace("\"", "\"\"") + "\"";
+        static string QText(string value) => "\"" + value.Replace("\"", "\"\"") + "\"";
+        static bool IsSimpleIdentifier(string value)
+        {
+            if (string.IsNullOrEmpty(value)) return false;
+            if (!(char.IsLetter(value[0]) || value[0] == '_')) return false;
+            for (var i = 1; i < value.Length; i++)
+            {
+                var ch = value[i];
+                if (!(char.IsLetterOrDigit(ch) || ch == '_')) return false;
+            }
+            return true;
+        }
+        static string MIdentifier(string value) => IsSimpleIdentifier(value) ? value : "#\"" + value.Replace("\"", "\"\"") + "\"";
         static string MValue(object? value) => value switch
         {
             null => "null",
             bool b => b ? "true" : "false",
             DateTime dt => $"#datetime({dt.Year},{dt.Month},{dt.Day},{dt.Hour},{dt.Minute},{dt.Second})",
-            string x => Q(x),
+            string x => QText(x),
             double x => x.ToString("R", CultureInfo.InvariantCulture),
             float x => x.ToString("R", CultureInfo.InvariantCulture),
             decimal x => x.ToString(CultureInfo.InvariantCulture),
             _ => Convert.ToString(value, CultureInfo.InvariantCulture) ?? "null"
         };
-        var schema = "type table [" + string.Join(", ", columns.Select(c => $"{Q(c.Name)} = {ToMType(c.DataType)}")) + "]";
+        var schema = "type table [" + string.Join(", ", columns.Select(c => $"{MIdentifier(c.Name)} = {ToMType(c.DataType)}")) + "]";
         var data = "{" + string.Join(",", rows.Select(row => "{" + string.Join(",", columns.Select(c => MValue(row[c.Name]))) + "}")) + "}";
         return $"let Source = #table({schema}, {data}) in Source";
     }
