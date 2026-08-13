@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using Microsoft.AnalysisServices.Tabular;
+using SystemJsonSerializer = System.Text.Json.JsonSerializer;
 
 internal static class PowerBiAuthoringService
 {
@@ -100,7 +101,7 @@ internal static class PowerBiAuthoringService
         if (Encoding.UTF8.GetByteCount(body) > MaxRequestBytes)
             throw new InvalidOperationException($"request_too_large>{MaxRequestBytes}");
 
-        var request = JsonSerializer.Deserialize<OperationsRequest>(body, JsonOptions())
+        var request = SystemJsonSerializer.Deserialize<OperationsRequest>(body, JsonOptions())
             ?? throw new InvalidOperationException("invalid_request");
         var operations = request.operations ?? throw new InvalidOperationException("operations_required");
         if (operations.Count == 0) throw new InvalidOperationException("operations_required");
@@ -209,7 +210,7 @@ internal static class PowerBiAuthoringService
                 .OrderBy(static x => x.Name, StringComparer.OrdinalIgnoreCase)
                 .ToList()
         };
-        var json = JsonSerializer.Serialize(fingerprintShape, JsonOptions());
+        var json = SystemJsonSerializer.Serialize(fingerprintShape, JsonOptions());
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(json))).ToLowerInvariant();
     }
 
@@ -310,17 +311,17 @@ internal static class PowerBiAuthoringService
         var type = RequireName(op.type, "operation_type");
         return type switch
         {
-            "import_sample_rows" => new PreparedOperation(type, table: RequireName(op.table, "table"), partition: RequireName(op.partition, "partition"), rows: ValidateRows(op.rows), raw: op),
-            "create_measure" or "update_measure" => new PreparedOperation(type, table: RequireName(op.table, "table"), measure: ValidateName(op.measure, "measure", MaxMeasureNameChars), expression: ValidateExpression(op.expression, MaxMeasureExpressionChars), formatString: op.formatString, displayFolder: op.displayFolder, hidden: op.hidden, raw: op),
-            "delete_measure" => new PreparedOperation(type, table: RequireName(op.table, "table"), measure: ValidateName(op.measure, "measure", MaxMeasureNameChars), raw: op),
-            "create_calculated_column" or "update_calculated_column" => new PreparedOperation(type, table: RequireName(op.table, "table"), column: ValidateName(op.column, "column", MaxColumnNameChars), expression: ValidateExpression(op.expression, MaxColumnExpressionChars), formatString: op.formatString, displayFolder: op.displayFolder, hidden: op.hidden, dataType: ValidateDataTypeName(op.dataType), raw: op),
-            "delete_calculated_column" => new PreparedOperation(type, table: RequireName(op.table, "table"), column: ValidateName(op.column, "column", MaxColumnNameChars), raw: op),
-            "create_table" => new PreparedOperation(type, table: ValidateName(op.table, "table", MaxTableNameChars), columns: ValidateColumns(op.columns), rows: ValidateCreateTableRows(op.rows), raw: op),
-            "delete_table" => new PreparedOperation(type, table: ValidateName(op.table, "table", MaxTableNameChars), raw: op),
-            "create_relationship" => new PreparedOperation(type, relationship: ValidateRelationshipName(op.relationship), fromTable: RequireName(op.fromTable, "fromTable"), fromColumn: RequireName(op.fromColumn, "fromColumn"), toTable: RequireName(op.toTable, "toTable"), toColumn: RequireName(op.toColumn, "toColumn"), isActive: op.isActive ?? true, crossFilteringBehavior: ValidateCrossFilteringBehavior(op.crossFilteringBehavior), raw: op),
-            "delete_relationship" => new PreparedOperation(type, relationship: ValidateRelationshipName(op.relationship), raw: op),
-            "update_partition_expression" => new PreparedOperation(type, table: RequireName(op.table, "table"), partition: RequireName(op.partition, "partition"), expression: ValidateExpression(op.expression, MaxPartitionExpressionChars), raw: op),
-            "restore" => new PreparedOperation(type, backupId: ValidateRestoreLocator(op.backupId, "backupId"), backupPath: ValidateRestoreLocator(op.backupPath, "backupPath"), raw: op),
+            "import_sample_rows" => new PreparedOperation(type, Table: RequireName(op.table, "table"), Partition: RequireName(op.partition, "partition"), Rows: ValidateRows(op.rows), Raw: op),
+            "create_measure" or "update_measure" => new PreparedOperation(type, Table: RequireName(op.table, "table"), Measure: ValidateName(op.measure, "measure", MaxMeasureNameChars), Expression: ValidateExpression(op.expression, MaxMeasureExpressionChars), FormatString: op.formatString, DisplayFolder: op.displayFolder, Hidden: op.hidden, Raw: op),
+            "delete_measure" => new PreparedOperation(type, Table: RequireName(op.table, "table"), Measure: ValidateName(op.measure, "measure", MaxMeasureNameChars), Raw: op),
+            "create_calculated_column" or "update_calculated_column" => new PreparedOperation(type, Table: RequireName(op.table, "table"), Column: ValidateName(op.column, "column", MaxColumnNameChars), Expression: ValidateExpression(op.expression, MaxColumnExpressionChars), FormatString: op.formatString, DisplayFolder: op.displayFolder, Hidden: op.hidden, DataType: ValidateDataTypeName(op.dataType), Raw: op),
+            "delete_calculated_column" => new PreparedOperation(type, Table: RequireName(op.table, "table"), Column: ValidateName(op.column, "column", MaxColumnNameChars), Raw: op),
+            "create_table" => new PreparedOperation(type, Table: ValidateName(op.table, "table", MaxTableNameChars), Columns: ValidateColumns(op.columns), Rows: ValidateCreateTableRows(op.rows), Raw: op),
+            "delete_table" => new PreparedOperation(type, Table: ValidateName(op.table, "table", MaxTableNameChars), Raw: op),
+            "create_relationship" => new PreparedOperation(type, Relationship: ValidateRelationshipName(op.relationship), FromTable: RequireName(op.fromTable, "fromTable"), FromColumn: RequireName(op.fromColumn, "fromColumn"), ToTable: RequireName(op.toTable, "toTable"), ToColumn: RequireName(op.toColumn, "toColumn"), IsActive: op.isActive ?? true, CrossFilteringBehavior: ValidateCrossFilteringBehavior(op.crossFilteringBehavior), Raw: op),
+            "delete_relationship" => new PreparedOperation(type, Relationship: ValidateRelationshipName(op.relationship), Raw: op),
+            "update_partition_expression" => new PreparedOperation(type, Table: RequireName(op.table, "table"), Partition: RequireName(op.partition, "partition"), Expression: ValidateExpression(op.expression, MaxPartitionExpressionChars), Raw: op),
+            "restore" => new PreparedOperation(type, BackupId: ValidateRestoreLocator(op.backupId, "backupId"), BackupPath: ValidateRestoreLocator(op.backupPath, "backupPath"), Raw: op),
             _ => throw new InvalidOperationException("unsupported_operation_type")
         };
     }
@@ -472,7 +473,7 @@ internal static class PowerBiAuthoringService
         var columns = op.Columns!;
         var rows = op.Rows ?? [];
         if (rows.Count > MaxTableRows) throw new InvalidOperationException($"too_many_rows>{MaxTableRows}");
-        var dataColumns = columns.Select(c => new DataColumn { Name = c.Name!, DataType = ParseDataType(c.DataType!) }).ToList();
+        var dataColumns = columns.Select(c => new DataColumn { Name = c.name!, DataType = ParseDataType(c.dataType!) }).ToList();
         var normalized = rows.Select(r => NormalizeRow(r, dataColumns)).ToList();
         _ = BuildMTableExpression(dataColumns, normalized);
         return new { type = op.Type, table = op.Table, columns = columns.Count, rowCount = rows.Count, applied = false };
@@ -482,7 +483,7 @@ internal static class PowerBiAuthoringService
     {
         if (session.Model.Tables.Find(op.Table!) is not null) throw new InvalidOperationException("table_already_exists");
         var table = new Table { Name = op.Table! };
-        var dataColumns = op.Columns!.Select(c => new DataColumn { Name = c.Name!, DataType = ParseDataType(c.DataType!) }).ToList();
+        var dataColumns = op.Columns!.Select(c => new DataColumn { Name = c.name!, DataType = ParseDataType(c.dataType!) }).ToList();
         foreach (var col in dataColumns) table.Columns.Add(col);
         var normalized = (op.Rows ?? []).Select(r => NormalizeRow(r, dataColumns)).ToList();
         table.Partitions.Add(new Partition { Name = op.Table!, Source = new MPartitionSource { Expression = BuildMTableExpression(dataColumns, normalized) } });
@@ -564,7 +565,7 @@ internal static class PowerBiAuthoringService
     static void ApplyRestore(Session session, PreparedOperation op)
     {
         var path = ResolveBackupPath(op.BackupId, op.BackupPath);
-        var payload = JsonSerializer.Deserialize<BackupEnvelope>(File.ReadAllText(path, Encoding.UTF8), JsonOptions())
+        var payload = SystemJsonSerializer.Deserialize<BackupEnvelope>(File.ReadAllText(path, Encoding.UTF8), JsonOptions())
             ?? throw new InvalidOperationException("backup_invalid");
         RestoreModelSnapshot(session.Model, payload);
     }
@@ -581,7 +582,7 @@ internal static class PowerBiAuthoringService
         Directory.CreateDirectory(backupDir);
         var payload = SnapshotModel(session.Model, session.Port, fingerprint);
         var path = Path.Combine(backupDir, $"authoring-{DateTime.Now:yyyyMMdd-HHmmss}.json");
-        File.WriteAllText(path, JsonSerializer.Serialize(payload, new JsonSerializerOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping, WriteIndented = true }), new UTF8Encoding(false));
+        File.WriteAllText(path, SystemJsonSerializer.Serialize(payload, new JsonSerializerOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping, WriteIndented = true }), new UTF8Encoding(false));
         return path;
     }
 
@@ -609,7 +610,7 @@ internal static class PowerBiAuthoringService
         {
             try
             {
-                var payload = JsonSerializer.Deserialize<BackupEnvelope>(File.ReadAllText(backupPath, Encoding.UTF8), JsonOptions());
+                var payload = SystemJsonSerializer.Deserialize<BackupEnvelope>(File.ReadAllText(backupPath, Encoding.UTF8), JsonOptions());
                 if (payload is not null)
                 {
                     RestoreModelSnapshot(session.Model, payload);
@@ -864,7 +865,7 @@ internal static class PowerBiAuthoringService
 
     static List<Dictionary<string, JsonElement>> ValidateRows(List<Dictionary<string, JsonElement>>? rows)
     {
-        rows ??= throw new InvalidOperationException("rows_required");
+        if (rows is null) throw new InvalidOperationException("rows_required");
         if (rows.Count == 0) throw new InvalidOperationException("rows_required");
         if (rows.Count > MaxRowsPerOperation) throw new InvalidOperationException($"too_many_rows>{MaxRowsPerOperation}");
         foreach (var row in rows)
@@ -883,17 +884,19 @@ internal static class PowerBiAuthoringService
 
     static List<ColumnSpec> ValidateColumns(List<ColumnSpec>? columns)
     {
-        columns ??= throw new InvalidOperationException("columns_required");
+        if (columns is null) throw new InvalidOperationException("columns_required");
         if (columns.Count == 0) throw new InvalidOperationException("columns_required");
         if (columns.Count > MaxTableColumns) throw new InvalidOperationException($"too_many_columns>{MaxTableColumns}");
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var normalized = new List<ColumnSpec>(columns.Count);
         foreach (var column in columns)
         {
             var name = ValidateName(column.name, "column", MaxColumnNameChars);
-            _ = ValidateDataTypeName(column.dataType);
+            var dataType = ValidateDataTypeName(column.dataType);
             if (!seen.Add(name)) throw new InvalidOperationException($"duplicate_column:{name}");
+            normalized.Add(new ColumnSpec(name, dataType));
         }
-        return columns;
+        return normalized;
     }
 
     static string ValidateDataTypeName(string? value)

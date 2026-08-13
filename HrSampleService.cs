@@ -5,6 +5,8 @@ using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using Microsoft.AnalysisServices.Tabular;
+using ReflectionAssembly = System.Reflection.Assembly;
+using SystemJsonSerializer = System.Text.Json.JsonSerializer;
 
 internal static class HrSampleService
 {
@@ -23,7 +25,7 @@ internal static class HrSampleService
     internal static SampleResult ApplyDeterministicSample()
     {
         _ = FindPowerBiDesktopBin();
-        var asm = Assembly.Load("Microsoft.AnalysisServices.Tabular");
+        var asm = ReflectionAssembly.Load("Microsoft.AnalysisServices.Tabular");
         dynamic server = Activator.CreateInstance(asm.GetType("Microsoft.AnalysisServices.Tabular.Server", true)!)!;
         try
         {
@@ -215,7 +217,7 @@ internal static class HrSampleService
         Directory.CreateDirectory(backupDir);
         var path = Path.Combine(backupDir, $"hr-sample-{DateTime.Now:yyyyMMdd-HHmmss}.json");
         var payload = schemas.Select(x => new { table = x.Name, sourceType = x.SourceType, expression = x.ExistingExpression, backedUpAt = DateTimeOffset.Now }).ToArray();
-        File.WriteAllText(path, JsonSerializer.Serialize(payload, new JsonSerializerOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping, WriteIndented = true }), new UTF8Encoding(false));
+        File.WriteAllText(path, SystemJsonSerializer.Serialize(payload, new JsonSerializerOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping, WriteIndented = true }), new UTF8Encoding(false));
         return path;
     }
 

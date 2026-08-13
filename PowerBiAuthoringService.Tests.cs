@@ -215,7 +215,7 @@ static class PowerBiAuthoringServiceTests
         var validateOp = typeof(PowerBiAuthoringService).GetMethod("ValidateOperation", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
         var batchStateType = typeof(PowerBiAuthoringService).GetNestedType("BatchState", System.Reflection.BindingFlags.NonPublic)!;
         var batchState = Activator.CreateInstance(batchStateType)!;
-        var relOp = prepare.Invoke(null, [new PowerBiAuthoringService.OperationRequest("create_relationship", null, null, null, null, null, null, null, null, null, null, null, null, "Sales", "Id", "Dim", "Id", "Sales_Dim", true, "OneDirection", null)])!;
+        var relOp = prepare.Invoke(null, [new PowerBiAuthoringService.OperationRequest("create_relationship", null, null, null, null, null, null, null, null, null, null, null, "Sales", "Id", "Dim", "Id", "Sales_Dim", true, "OneDirection", null, null)])!;
         AssertThrows(() => validateOp.Invoke(null, [session, relOp, batchState]), "relationship_column_type_mismatch");
     }
 
