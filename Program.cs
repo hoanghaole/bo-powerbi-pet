@@ -177,7 +177,9 @@ sealed class PetForm : Form
         }
         catch (Exception ex)
         {
-            try { await Json(c, 500, new { ok = false, error = ex.Message }); } catch { }
+            var root = ex;
+            while (root.InnerException != null) root = root.InnerException;
+            try { await Json(c, 500, new { ok = false, error = root.Message, type = root.GetType().Name }); } catch { }
         }
     }
 
