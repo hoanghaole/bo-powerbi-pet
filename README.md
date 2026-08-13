@@ -32,12 +32,12 @@ Non-Windows trả lỗi rõ. PowerShell installer giữ lại làm fallback.
 ## Fallback PowerShell
 ### Cài mới
 ```powershell
-irm https://raw.githubusercontent.com/hoanghaole/bo-powerbi-pet/main/install.ps1 | iex
+iex (irm https://raw.githubusercontent.com/hoanghaole/bo-powerbi-pet/main/install.ps1)
 ```
 
 ### Cập nhật
 ```powershell
-irm https://raw.githubusercontent.com/hoanghaole/bo-powerbi-pet/main/update.ps1 | iex
+iex (irm https://raw.githubusercontent.com/hoanghaole/bo-powerbi-pet/main/update.ps1)
 ```
 
 ## API giữ lại
