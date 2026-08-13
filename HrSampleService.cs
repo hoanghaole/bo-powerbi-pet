@@ -300,11 +300,10 @@ internal static class HrSampleService
         throw new InvalidOperationException("Không tìm thấy cổng listener của msmdsrv");
     }
 
-    static T FirstOrThrow<T>(System.Collections.IEnumerable items, string message)
+    static object FirstOrThrow(System.Collections.IEnumerable items, string message)
     {
         foreach (var item in items)
-            if (item is T typed) return typed;
-            else return (T)item;
+            return item ?? throw new InvalidOperationException(message);
         throw new InvalidOperationException(message);
     }
 
