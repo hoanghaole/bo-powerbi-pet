@@ -192,10 +192,18 @@ static class PowerBiAuthoringServiceTests
 
         var restoreOp = prepare.Invoke(null, [new PowerBiAuthoringService.OperationRequest("restore", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, "a.json", null)])!;
         var measureOp = prepare.Invoke(null, [new PowerBiAuthoringService.OperationRequest("create_measure", "Sales", null, "M", "1", null, null, false, null, null, null, null, null, null, null, null, null, null, null, null, null)])!;
-        AssertThrows(() => validateBatch.Invoke(null, [session, new[] { restoreOp, measureOp }]), "restore_must_be_single_operation");
+        AssertThrows(() => validateBatch.Invoke(null, [session, ToPreparedList(restoreOp, measureOp)]), "restore_must_be_single_operation");
 
         var createTable = prepare.Invoke(null, [new PowerBiAuthoringService.OperationRequest("create_table", "T", null, null, null, null, null, null, [], [new("Id", "Int64")], null, null, null, null, null, null, null, null, null, null, null)])!;
-        AssertThrows(() => validateBatch.Invoke(null, [session, new[] { createTable, measureOp }]), "topology_batch_not_supported_in_v4:create_table");
+        AssertThrows(() => validateBatch.Invoke(null, [session, ToPreparedList(createTable, measureOp)]), "topology_batch_not_supported_in_v4:create_table");
+    }
+
+    static object ToPreparedList(params object[] operations)
+    {
+        var type = operations[0].GetType();
+        var list = (System.Collections.IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(type))!;
+        foreach (var operation in operations) list.Add(operation);
+        return list;
     }
 
     static void RelationshipValidationContract()
