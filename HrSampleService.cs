@@ -194,7 +194,7 @@ internal static class HrSampleService
         return sb.ToString();
     }
 
-    static string BuildMExpression(TableSchema schema, List<Dictionary<string, object?>> rows)
+    internal static string BuildMExpression(TableSchema schema, List<Dictionary<string, object?>> rows)
     {
         static string Q(string value) => "\"" + value.Replace("\"", "\"\"") + "\"";
         static string MType(string type) => type switch
@@ -212,7 +212,7 @@ internal static class HrSampleService
         };
         var type = "type table [" + string.Join(", ", schema.Columns.Select(c => "#" + Q(c.Name) + " = " + MType(c.DataType))) + "]";
         var data = "{" + string.Join(",", rows.Select(row => "{" + string.Join(",", schema.Columns.Select(c => MValue(row[c.Name], c.DataType))) + "}")) + "}";
-        return $"#table({type},{data})";
+        return $"let Source = #table({type}, {data}) in Source";
     }
 
     static string BackupExpressions(IEnumerable<TableSchema> schemas)
