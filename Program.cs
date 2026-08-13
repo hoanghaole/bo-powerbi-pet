@@ -5,11 +5,14 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 
-[STAThread]
-static void Main()
+static class Program
 {
-    ApplicationConfiguration.Initialize();
-    Application.Run(new PetForm());
+    [STAThread]
+    static void Main()
+    {
+        ApplicationConfiguration.Initialize();
+        Application.Run(new PetForm());
+    }
 }
 
 sealed class PetForm : Form
