@@ -111,7 +111,7 @@ static class BridgeCore
     }
 
     internal static string BuildReleaseAssetUrl(string version, string asset)
-        => $"https://github.com/boapps/bo-powerbi-pet/releases/download/{version}/{asset}";
+        => $"https://github.com/hoanghaole/bo-powerbi-pet/releases/download/{version}/{asset}";
 
     internal static string Json(object value) => JsonSerializer.Serialize(value);
 }

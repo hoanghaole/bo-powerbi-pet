@@ -50,9 +50,3 @@ jobs:
             BoBIPet-win-x64.zip
             SHA256SUMS
           generate_release_notes: true
-
-      - name: Publish npm
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
