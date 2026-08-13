@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using Microsoft.AnalysisServices.Tabular;
 
 internal static class HrSampleService
 {
@@ -196,24 +197,17 @@ internal static class HrSampleService
 
     internal static string BuildMExpression(TableSchema schema, List<Dictionary<string, object?>> rows)
     {
-        static string Q(string value) => "\"" + value.Replace("\"", "\"\"") + "\"";
-        static string MType(string type) => type switch
-        {
-            "Int64" => "Int64.Type", "Decimal" => "type number", "Double" => "type number",
-            "Boolean" => "type logical", "DateTime" => "type datetime", _ => "type text"
-        };
-        static string MValue(object? value, string type) => value switch
-        {
-            null => "null",
-            DateTime dt => $"#datetime({dt.Year},{dt.Month},{dt.Day},{dt.Hour},{dt.Minute},{dt.Second})",
-            bool b => b ? "true" : "false",
-            string x => Q(x),
-            _ => Convert.ToString(value, CultureInfo.InvariantCulture) ?? "null"
-        };
-        var type = "type table [" + string.Join(", ", schema.Columns.Select(c => "#" + Q(c.Name) + " = " + MType(c.DataType))) + "]";
-        var data = "{" + string.Join(",", rows.Select(row => "{" + string.Join(",", schema.Columns.Select(c => MValue(row[c.Name], c.DataType))) + "}")) + "}";
-        return $"let Source = #table({type}, {data}) in Source";
+        var typedColumns = schema.Columns
+            .Select(c => new DataColumn { Name = c.Name, DataType = ParseTabularDataType(c.DataType) })
+            .Cast<DataColumn>()
+            .ToList();
+        return PowerBiAuthoringService.BuildMTableExpression(typedColumns, rows);
     }
+
+    static DataType ParseTabularDataType(string name)
+        => Enum.TryParse<DataType>(name, ignoreCase: true, out var dataType)
+            ? dataType
+            : throw new InvalidOperationException($"unsupported_data_type:{name}");
 
     static string BackupExpressions(IEnumerable<TableSchema> schemas)
     {

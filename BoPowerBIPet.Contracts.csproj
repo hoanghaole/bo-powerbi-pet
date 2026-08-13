@@ -12,5 +12,11 @@
     <Compile Include="Contracts.Tests.cs" />
     <Compile Include="HrSampleService.cs" />
     <Compile Include="HrSampleService.Tests.cs" />
+    <Compile Include="PowerBiAuthoringService.cs" />
+    <Compile Include="PowerBiAuthoringService.Tests.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AnalysisServices.NetCore.retail.amd64" Version="19.84.1" />
   </ItemGroup>
 </Project>

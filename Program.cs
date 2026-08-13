@@ -89,7 +89,7 @@ sealed class PetForm : Form
             StartBridge();
             Add($"Bridge: http://localhost:{port}");
             Add($"Token: {token}");
-            Add("Endpoint: GET /health, /powerbi/processes, /powerbi/listeners, /powerbi/model-summary; POST /powerbi/dax, /powerbi/hr-sample");
+            Add("Endpoint: GET /health, /powerbi/processes, /powerbi/listeners, /powerbi/model-summary; POST /powerbi/dax, /powerbi/hr-sample, /v1/powerbi/model/inspect, /v1/powerbi/model/operations");
             string cf = await EnsureCloudflared();
             StartTunnel(cf);
             State($"Bridge chạy tại localhost:{port}. Đang lấy URL Cloudflare…");
@@ -141,6 +141,11 @@ sealed class PetForm : Form
             }
 
             string p = c.Request.Url!.AbsolutePath;
+            if (!BridgeCore.IsAllowedRoute(p, c.Request.HttpMethod))
+            {
+                await Json(c, 404, new { ok = false, error = "not_found" });
+                return;
+            }
             if (p == "/" || p == "/health")
             {
                 await Json(c, 200, new { ok = true, service = BridgeCore.ServiceName, time = DateTime.UtcNow, platform = "win32", auth = "bearer", port });
@@ -151,7 +156,7 @@ sealed class PetForm : Form
             if (p == "/powerbi/model-summary") { await PsRawJson(c, Scripts.ModelSummary, 120000); return; }
             if (p == "/powerbi/dax" && c.Request.HttpMethod == "POST")
             {
-                var body = await ReadBody(c);
+                var body = await ReadBody(c, PowerBiAuthoringService.MaxRequestBytes);
                 var q = JsonDocument.Parse(body).RootElement.GetProperty("query").GetString() ?? "";
                 await PsRawJson(c, Scripts.Dax(q), 120000);
                 return;
@@ -173,6 +178,17 @@ sealed class PetForm : Form
                 });
                 return;
             }
+            if (p == "/v1/powerbi/model/inspect" && c.Request.HttpMethod == "POST")
+            {
+                await Json(c, 200, JsonDocument.Parse(PowerBiAuthoringService.InspectJson()).RootElement.Clone());
+                return;
+            }
+            if (p == "/v1/powerbi/model/operations" && c.Request.HttpMethod == "POST")
+            {
+                var body = await ReadBody(c, PowerBiAuthoringService.MaxRequestBytes);
+                await Json(c, 200, JsonDocument.Parse(PowerBiAuthoringService.ApplyOperationsJson(body)).RootElement.Clone());
+                return;
+            }
             await Json(c, 404, new { ok = false, error = "not_found" });
         }
         catch (Exception ex)
@@ -183,10 +199,15 @@ sealed class PetForm : Form
         }
     }
 
-    static async Task<string> ReadBody(HttpListenerContext c)
+    static async Task<string> ReadBody(HttpListenerContext c, int maxBytes)
     {
-        using var r = new StreamReader(c.Request.InputStream, c.Request.ContentEncoding);
-        return await r.ReadToEndAsync();
+        if (c.Request.ContentLength64 > maxBytes)
+            throw new InvalidOperationException($"request_too_large>{maxBytes}");
+        using var ms = new MemoryStream();
+        await c.Request.InputStream.CopyToAsync(ms);
+        if (ms.Length > maxBytes)
+            throw new InvalidOperationException($"request_too_large>{maxBytes}");
+        return (c.Request.ContentEncoding ?? Encoding.UTF8).GetString(ms.ToArray());
     }
 
     static async Task Json(HttpListenerContext c, int code, object x)

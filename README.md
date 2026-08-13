@@ -2,6 +2,8 @@
 
 Bridge Windows tối giản để Claude Desktop/OpenClaw gọi Power BI Desktop qua HTTP có bearer token.
 
+Bản 4.0.0 thêm typed authoring MVP cho model hiện tại, fail-closed nếu không đúng đúng 1 `msmdsrv` listener + 1 model.
+
 ## Phân phối chính
 `bobipet` là npm package chính. Cài global:
 
@@ -54,6 +56,94 @@ Endpoint:
 - `GET /powerbi/model-summary`
 - `POST /powerbi/dax` với body JSON: `{"query":"EVALUATE ..."}`
 - `POST /powerbi/hr-sample` body rỗng hoặc JSON bất kỳ; endpoint tự kiểm tra 3 calculated tables `HR Nhân viên`, `HR Tuyển dụng`, `HR Đào tạo`, backup expression cũ vào `%LOCALAPPDATA%\BoBIPet\backups\*.json`, rồi thay bằng dữ liệu HR mẫu deterministic giữ nguyên schema/relationships/measures
+- `POST /v1/powerbi/model/inspect` trả metadata typed + `fingerprint`
+- `POST /v1/powerbi/model/operations` nhận batch typed; chỉ hỗ trợ:
+  - `import_sample_rows` cho partition `MPartitionSource` đã tồn tại
+  - `create_table`
+  - `delete_table` (`destructiveConfirm: "DELETE"` khi apply)
+  - `create_measure`
+  - `update_measure`
+  - `delete_measure`
+  - `create_calculated_column`
+  - `update_calculated_column`
+  - `delete_calculated_column`
+  - `create_relationship`
+  - `delete_relationship`
+  - `update_partition_expression` (M only)
+  - `restore` từ `backupId` basename-only hoặc `backupPath` allowlisted dưới `%LOCALAPPDATA%\BoBIPet\backups`
+
+## Typed authoring contract
+`POST /v1/powerbi/model/inspect`
+
+Response tối thiểu:
+```json
+{
+  "ok": true,
+  "port": 49783,
+  "fingerprint": "64hex...",
+  "model": {
+    "name": "Model",
+    "id": "...",
+    "compatibilityLevel": 1565,
+    "counts": { "tables": 1, "columns": 3, "measures": 2, "calculatedColumns": 1, "relationships": 0, "partitions": 1 },
+    "tables": [{ "name": "Sales", "hidden": false, "partitions": [{ "name": "Sales", "sourceType": "MPartitionSource", "expression": "let ..." }], "columns": ["Amount"] }],
+    "measures": [{ "table": "Sales", "name": "Revenue", "hidden": false, "formatString": "#,0", "displayFolder": "KPIs", "expression": "SUM(Sales[Amount])" }],
+    "calculatedColumns": [{ "table": "Sales", "name": "Net", "hidden": false, "formatString": null, "displayFolder": null, "expression": "[Amount] * 0.9", "dataType": "Decimal" }],
+    "relationships": []
+  }
+}
+```
+
+`POST /v1/powerbi/model/operations`
+
+- `dryRun` mặc định `true`
+- apply thật bắt buộc có `port` + `expectedFingerprint` khớp inspect hiện tại
+- batch được validate toàn bộ trước mutation
+- `Program.Handle` chặn mọi route/method ngoài allowlist `BridgeCore.IsAllowedRoute`
+- operation destructive (`delete_*`, `restore`) bắt buộc `destructiveConfirm: "DELETE"`
+- backup model state vào `%LOCALAPPDATA%\BoBIPet\backups\authoring-*.json` trước khi apply
+- fingerprint gồm measures + calculated columns + M partition expressions + data column datatype/hidden/key + relationship cardinality/behavior
+- `SaveChanges()` gọi đúng 1 lần mỗi batch apply
+- nếu `SaveChanges()` lỗi: restore fail-closed từ backup rồi `SaveChanges()` lại; không fallback `RequestRefresh(Full)` giả rollback
+- topology batch (`create/delete_table`, `create/delete_relationship`, `restore`) bị cấm đi chung op khác trong v4 MVP
+- lỗi trả root error, không expose generic PowerShell/TOM reflection surface
+- giới hạn hiện tại:
+  - body <= 256 KB
+  - tối đa 100 operations/batch
+  - tối đa 200 rows cho mỗi `import_sample_rows`
+  - tối đa 64 cells/row
+
+Ví dụ dry run:
+```json
+{
+  "operations": [
+    {
+      "type": "create_measure",
+      "table": "Sales",
+      "measure": "Revenue",
+      "expression": "SUM(Sales[Amount])",
+      "formatString": "#,0"
+    }
+  ]
+}
+```
+
+Ví dụ apply:
+```json
+{
+  "port": 49783,
+  "expectedFingerprint": "<inspect fingerprint>",
+  "dryRun": false,
+  "destructiveConfirm": "DELETE",
+  "operations": [
+    {
+      "type": "delete_measure",
+      "table": "Sales",
+      "measure": "Revenue"
+    }
+  ]
+}
+```
 
 ## Cách chạy
 Sau khi cài, chạy `bobipet` hoặc `BoBIPet`. App hiển thị:

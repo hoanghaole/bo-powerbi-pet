@@ -15,7 +15,9 @@ static class BridgeCore
         "/powerbi/listeners",
         "/powerbi/model-summary",
         "/powerbi/dax",
-        "/powerbi/hr-sample"
+        "/powerbi/hr-sample",
+        "/v1/powerbi/model/inspect",
+        "/v1/powerbi/model/operations"
     };
 
     internal static string AppDir()
@@ -78,7 +80,9 @@ static class BridgeCore
     internal static bool IsAllowedRoute(string path, string method)
     {
         if (path.Equals("/powerbi/dax", StringComparison.OrdinalIgnoreCase)
-            || path.Equals("/powerbi/hr-sample", StringComparison.OrdinalIgnoreCase))
+            || path.Equals("/powerbi/hr-sample", StringComparison.OrdinalIgnoreCase)
+            || path.Equals("/v1/powerbi/model/inspect", StringComparison.OrdinalIgnoreCase)
+            || path.Equals("/v1/powerbi/model/operations", StringComparison.OrdinalIgnoreCase))
             return method.Equals("POST", StringComparison.OrdinalIgnoreCase);
 
         return AllowedRoutes.Contains(path) && method.Equals("GET", StringComparison.OrdinalIgnoreCase);

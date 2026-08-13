@@ -21,6 +21,7 @@ static class ContractTests
         Assert(BridgeCore.IsAuthorized(headers, new string('b', 64)), "Authorization đúng");
         Assert(!BridgeCore.IsAuthorized(new WebHeaderCollection(), new string('b', 64)), "Thiếu Authorization bị từ chối");
         HrSampleServiceTests.Run();
+        PowerBiAuthoringServiceTests.Run();
         return 0;
     }
 
