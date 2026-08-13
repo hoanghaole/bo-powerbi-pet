@@ -29,21 +29,21 @@ static class HrSampleServiceTests
                 new("Phòng ban", "String"),
                 new("Ngày vào làm", "DateTime"),
                 new("Lương", "Decimal")
-            }, new object(), new object(), "old-employee"),
+            }, new object(), new object(), "CalculatedPartitionSource", "old-employee"),
             new HrSampleService.TableSchema("HR Tuyển dụng", new()
             {
                 new("Mã tuyển dụng", "String"),
                 new("Mã nhân viên", "String"),
                 new("Vị trí", "String"),
                 new("Ngày tuyển", "DateTime")
-            }, new object(), new object(), "old-recruit"),
+            }, new object(), new object(), "MPartitionSource", "old-recruit"),
             new HrSampleService.TableSchema("HR Đào tạo", new()
             {
                 new("Mã đào tạo", "String"),
                 new("Mã nhân viên", "String"),
                 new("Khóa học", "String"),
                 new("Ngày đào tạo", "DateTime")
-            }, new object(), new object(), "old-training")
+            }, new object(), new object(), "MPartitionSource", "old-training")
         };
 
         var data = HrSampleService.BuildSampleData(schemas);

@@ -9,7 +9,7 @@ internal static class HrSampleService
 {
     internal sealed record SampleResult(int Employees, int Recruitments, int Trainings, int Port, string BackupPath);
     internal sealed record TableContract(string Name, string[] RequiredColumns);
-    internal sealed record TableSchema(string Name, List<ColumnSchema> Columns, object Table, object Partition, string ExistingExpression);
+    internal sealed record TableSchema(string Name, List<ColumnSchema> Columns, object Table, object Partition, string SourceType, string ExistingExpression);
     internal sealed record ColumnSchema(string Name, string DataType);
 
     static readonly TableContract[] Contracts =
@@ -45,8 +45,7 @@ internal static class HrSampleService
             var backupPath = BackupExpressions(schemas);
             foreach (var schema in schemas)
             {
-                var expression = BuildExpression(schema, data[schema.Name]);
-                SetCalculatedExpression(schema.Partition, expression);
+                SetSourceExpression(schema, data[schema.Name]);
             }
 
             model.GetType().GetMethod("SaveChanges", Type.EmptyTypes)!.Invoke(model, null);
@@ -195,12 +194,33 @@ internal static class HrSampleService
         return sb.ToString();
     }
 
+    static string BuildMExpression(TableSchema schema, List<Dictionary<string, object?>> rows)
+    {
+        static string Q(string value) => "\"" + value.Replace("\"", "\"\"") + "\"";
+        static string MType(string type) => type switch
+        {
+            "Int64" => "Int64.Type", "Decimal" => "type number", "Double" => "type number",
+            "Boolean" => "type logical", "DateTime" => "type datetime", _ => "type text"
+        };
+        static string MValue(object? value, string type) => value switch
+        {
+            null => "null",
+            DateTime dt => $"#datetime({dt.Year},{dt.Month},{dt.Day},{dt.Hour},{dt.Minute},{dt.Second})",
+            bool b => b ? "true" : "false",
+            string x => Q(x),
+            _ => Convert.ToString(value, CultureInfo.InvariantCulture) ?? "null"
+        };
+        var type = "type table [" + string.Join(", ", schema.Columns.Select(c => "#" + Q(c.Name) + " = " + MType(c.DataType))) + "]";
+        var data = "{" + string.Join(",", rows.Select(row => "{" + string.Join(",", schema.Columns.Select(c => MValue(row[c.Name], c.DataType))) + "}")) + "}";
+        return $"#table({type},{data})";
+    }
+
     static string BackupExpressions(IEnumerable<TableSchema> schemas)
     {
         var backupDir = Path.Combine(BridgeCore.AppDir(), "backups");
         Directory.CreateDirectory(backupDir);
         var path = Path.Combine(backupDir, $"hr-sample-{DateTime.Now:yyyyMMdd-HHmmss}.json");
-        var payload = schemas.Select(x => new { table = x.Name, expression = x.ExistingExpression, backedUpAt = DateTimeOffset.Now }).ToArray();
+        var payload = schemas.Select(x => new { table = x.Name, sourceType = x.SourceType, expression = x.ExistingExpression, backedUpAt = DateTimeOffset.Now }).ToArray();
         File.WriteAllText(path, JsonSerializer.Serialize(payload, new JsonSerializerOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping, WriteIndented = true }), new UTF8Encoding(false));
         return path;
     }
@@ -232,17 +252,20 @@ internal static class HrSampleService
         var partition = FirstOrThrow((System.Collections.IEnumerable)partitionsObj, $"Table {name} không có partition");
         var source = partition.GetType().GetProperty("Source")!.GetValue(partition) ?? throw new InvalidOperationException($"Table {name} không có Source");
         var sourceType = source.GetType().Name;
-        if (!sourceType.Contains("CalculatedPartitionSource", StringComparison.Ordinal))
-            throw new InvalidOperationException($"Table {name} không phải calculated table");
+        if (!sourceType.Contains("CalculatedPartitionSource", StringComparison.Ordinal)
+            && !sourceType.Contains("MPartitionSource", StringComparison.Ordinal))
+            throw new InvalidOperationException($"Table {name} có partition không hỗ trợ: {sourceType}");
         var expression = source.GetType().GetProperty("Expression")!.GetValue(source)?.ToString() ?? "";
-        return new TableSchema(name, columns, table, partition, expression);
+        return new TableSchema(name, columns, table, partition, sourceType, expression);
     }
 
-    static void SetCalculatedExpression(object partition, string expression)
+    static void SetSourceExpression(TableSchema schema, List<Dictionary<string, object?>> rows)
     {
-        var source = partition.GetType().GetProperty("Source")!.GetValue(partition) ?? throw new InvalidOperationException("Partition source null");
-        var exprProp = source.GetType().GetProperty("Expression") ?? throw new InvalidOperationException("Calculated partition source không có Expression");
-        exprProp.SetValue(source, expression);
+        var source = schema.Partition.GetType().GetProperty("Source")!.GetValue(schema.Partition) ?? throw new InvalidOperationException("Partition source null");
+        var expression = schema.SourceType.Contains("MPartitionSource", StringComparison.Ordinal)
+            ? BuildMExpression(schema, rows)
+            : BuildExpression(schema, rows);
+        source.GetType().GetProperty("Expression")!.SetValue(source, expression);
     }
 
     static object? FindTable(object tablesCollection, string tableName)
