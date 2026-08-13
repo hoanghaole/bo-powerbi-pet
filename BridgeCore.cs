@@ -69,7 +69,7 @@ static class BridgeCore
     }
 
     internal static bool IsAuthorized(HttpListenerRequest request, string token)
-        => IsAuthorized(request.Headers, token);
+        => IsAuthorized((WebHeaderCollection)request.Headers, token);
 
     internal static bool IsAuthorized(WebHeaderCollection headers, string token)
         => string.Equals(headers[HttpRequestHeader.Authorization], $"Bearer {token}", StringComparison.Ordinal);
