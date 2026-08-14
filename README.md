@@ -2,7 +2,7 @@
 
 Bridge Windows tối giản để Claude Desktop/OpenClaw gọi Power BI Desktop qua HTTP có bearer token.
 
-Bản 4.0.0 thêm typed authoring MVP cho model hiện tại, fail-closed nếu không đúng đúng 1 `msmdsrv` listener + 1 model.
+Bản 4.0.5 hỗ trợ tạo relationship tới cột của calculated table như `Ngày[Date]`.
 
 ## Phân phối chính
 `bobipet` là npm package chính. Cài global:

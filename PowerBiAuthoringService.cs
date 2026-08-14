@@ -288,7 +288,7 @@ internal static class PowerBiAuthoringService
         var key = $"{tableName}.{columnName}";
         if (deletedColumns.Contains(key)) throw new InvalidOperationException($"relationship_targets_deleted_column:{key}");
         if (createdColumns.Contains(key)) throw new InvalidOperationException($"relationship_targets_new_column_unsupported_in_v4:{key}");
-        _ = FindDataColumn(table, columnName);
+        _ = FindRelationshipColumn(table, columnName);
     }
 
     internal static void ValidateRequestShape(OperationsRequest request)
@@ -505,8 +505,8 @@ internal static class PowerBiAuthoringService
     static object ValidateCreateRelationship(Session session, PreparedOperation op)
     {
         if (session.Model.Relationships.Find(op.Relationship!) is not null) throw new InvalidOperationException("relationship_already_exists");
-        var fromColumn = FindDataColumn(FindTable(session.Model, op.FromTable!), op.FromColumn!);
-        var toColumn = FindDataColumn(FindTable(session.Model, op.ToTable!), op.ToColumn!);
+        var fromColumn = FindRelationshipColumn(FindTable(session.Model, op.FromTable!), op.FromColumn!);
+        var toColumn = FindRelationshipColumn(FindTable(session.Model, op.ToTable!), op.ToColumn!);
         ValidateRelationshipColumns(fromColumn, toColumn);
         _ = new SingleColumnRelationship { Name = op.Relationship!, FromColumn = fromColumn, ToColumn = toColumn, IsActive = op.IsActive ?? true, CrossFilteringBehavior = ParseCrossFilteringBehavior(op.CrossFilteringBehavior!) };
         return new { type = op.Type, relationship = op.Relationship, fromTable = op.FromTable, fromColumn = op.FromColumn, toTable = op.ToTable, toColumn = op.ToColumn, applied = false };
@@ -518,12 +518,12 @@ internal static class PowerBiAuthoringService
         var relationship = new SingleColumnRelationship
         {
             Name = op.Relationship!,
-            FromColumn = FindDataColumn(FindTable(session.Model, op.FromTable!), op.FromColumn!),
-            ToColumn = FindDataColumn(FindTable(session.Model, op.ToTable!), op.ToColumn!),
+            FromColumn = FindRelationshipColumn(FindTable(session.Model, op.FromTable!), op.FromColumn!),
+            ToColumn = FindRelationshipColumn(FindTable(session.Model, op.ToTable!), op.ToColumn!),
             IsActive = op.IsActive ?? true,
             CrossFilteringBehavior = ParseCrossFilteringBehavior(op.CrossFilteringBehavior!)
         };
-        ValidateRelationshipColumns((DataColumn)relationship.FromColumn, (DataColumn)relationship.ToColumn);
+        ValidateRelationshipColumns(relationship.FromColumn, relationship.ToColumn);
         session.Model.Relationships.Add(relationship);
     }
 
@@ -678,8 +678,8 @@ internal static class PowerBiAuthoringService
             model.Relationships.Add(new SingleColumnRelationship
             {
                 Name = rel.name,
-                FromColumn = FindDataColumn(FindTable(model, rel.fromTable), rel.fromColumn),
-                ToColumn = FindDataColumn(FindTable(model, rel.toTable), rel.toColumn),
+                FromColumn = FindRelationshipColumn(FindTable(model, rel.fromTable), rel.fromColumn),
+                ToColumn = FindRelationshipColumn(FindTable(model, rel.toTable), rel.toColumn),
                 IsActive = rel.isActive,
                 CrossFilteringBehavior = ParseCrossFilteringBehavior(rel.crossFilteringBehavior)
             });
@@ -846,7 +846,12 @@ internal static class PowerBiAuthoringService
     static DataColumn FindDataColumn(Table table, string name)
         => table.Columns.Find(name) as DataColumn ?? throw new InvalidOperationException("column_not_found");
 
-    static void ValidateRelationshipColumns(DataColumn fromColumn, DataColumn toColumn)
+    static Column FindRelationshipColumn(Table table, string name)
+        => table.Columns.Find(name) is { } column && column is DataColumn or CalculatedTableColumn
+            ? column
+            : throw new InvalidOperationException("column_not_found");
+
+    static void ValidateRelationshipColumns(Column fromColumn, Column toColumn)
     {
         if (fromColumn.DataType != toColumn.DataType)
             throw new InvalidOperationException("relationship_column_type_mismatch");

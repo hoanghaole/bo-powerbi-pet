@@ -13,7 +13,20 @@ static class PowerBiAuthoringServiceTests
         BackupRestoreContract();
         BatchSemanticContract();
         RelationshipValidationContract();
+        CalculatedTableRelationshipContract();
         RestorePathContract();
+    }
+
+    static void CalculatedTableRelationshipContract()
+    {
+        var fact = new Table { Name = "Fact" };
+        fact.Columns.Add(new DataColumn { Name = "Date", DataType = DataType.DateTime });
+        var calendar = new Table { Name = "Ngày" };
+        calendar.Columns.Add(new CalculatedTableColumn { Name = "Date", DataType = DataType.DateTime });
+        var find = typeof(PowerBiAuthoringService).GetMethod("FindRelationshipColumn", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+        Assert(find.Invoke(null, [fact, "Date"]) is DataColumn, "relationship hỗ trợ data column");
+        Assert(find.Invoke(null, [calendar, "Date"]) is CalculatedTableColumn, "relationship hỗ trợ calculated-table column");
+        AssertThrows(() => find.Invoke(null, [calendar, "Missing"]), "column_not_found");
     }
 
     static void RouteContract()

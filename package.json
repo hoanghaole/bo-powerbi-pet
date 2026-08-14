@@ -1,6 +1,6 @@
 {
   "name": "bobipet",
-  "version": "4.0.0",
+  "version": "4.0.5",
   "description": "Windows installer/updater launcher for BoBIPet",
   "license": "MIT",
   "bin": {
