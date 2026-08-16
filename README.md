@@ -4,43 +4,25 @@ Bridge Windows tối giản để Claude Desktop/OpenClaw gọi Power BI Desktop
 
 Bản 4.0.5 hỗ trợ tạo relationship tới cột của calculated table như `Ngày[Date]`.
 
-## Phân phối chính
-`bobipet` là npm package chính. Cài global:
+## Cài đặt (duy nhất)
 
-```powershell
-npm install -g bobipet
-```
-
-Lần chạy đầu `bobipet` hoặc `BoBIPet` sẽ:
-- tải `BoBIPet-win-x64.zip` đúng version từ GitHub Release `hoanghaole/bo-powerbi-pet`
-- tải `SHA256SUMS`, xác minh SHA-256 trước khi giải nén
-- cài vào npm-managed prefix nếu có, fallback `%LOCALAPPDATA%\BoBIPet\npm`
-- chạy `BoBIPet.exe`
-
-Cập nhật:
-
-```powershell
-npm update -g bobipet
-```
-
-Xem version package:
-
-```powershell
-bobipet --version
-```
-
-Non-Windows trả lỗi rõ. PowerShell installer giữ lại làm fallback.
-
-## Fallback PowerShell
 ### Cài mới
 ```powershell
 iex (irm https://raw.githubusercontent.com/hoanghaole/bo-powerbi-pet/main/install.ps1)
 ```
 
+Script sẽ:
+- tải `BoBIPet-win-x64.zip` từ GitHub Release mới nhất
+- tải `SHA256SUMS`, xác minh SHA-256 trước khi giải nén
+- đóng process cũ `BoBIPet`/`BoPowerBIPet` nếu đang chạy
+- cài vào `%LOCALAPPDATA%\BoBIPet` và chạy `BoBIPet.exe`
+
 ### Cập nhật
 ```powershell
 iex (irm https://raw.githubusercontent.com/hoanghaole/bo-powerbi-pet/main/update.ps1)
 ```
+
+(update.ps1 chỉ gọi lại install.ps1 mới nhất)
 
 ## API giữ lại
 Cần header:
@@ -146,7 +128,7 @@ Ví dụ apply:
 ```
 
 ## Cách chạy
-Sau khi cài, chạy `bobipet` hoặc `BoBIPet`. App hiển thị:
+Sau khi cài, chạy `BoBIPet.exe` (đã nằm trong `%LOCALAPPDATA%\BoBIPet`). App hiển thị:
 - URL `https://...trycloudflare.com`
 - token hiện tại
 - port local đang dùng
@@ -160,7 +142,8 @@ Tạo tag `vX.Y.Z`. GitHub Actions sẽ:
 3. zip artifact `BoBIPet-win-x64.zip`
 4. tạo `SHA256SUMS`
 5. publish GitHub Release
-6. publish npm package `bobipet`
+
+Phân phối chính thức là GitHub Release; `install.ps1`/`update.ps1` là đường cài/update duy nhất.
 
 ## Build local
 ```bash
@@ -178,4 +161,3 @@ npm test
 - Endpoint HR sample chỉ hỗ trợ 3 table calculated có schema còn tương thích; nếu user đổi tên column/table thì endpoint sẽ từ chối trước khi `SaveChanges`.
 - Vẫn phụ thuộc Power BI Desktop + `Microsoft.PowerBI.AdomdClient.dll` trên máy user.
 - Chưa có chữ ký code.
-- npm wrapper dùng PowerShell `Expand-Archive` trên Windows; muốn bỏ phụ thuộc này thì thêm extractor stdlib/native khác.
