@@ -189,6 +189,42 @@ sealed class PetForm : Form
                 await Json(c, 200, JsonDocument.Parse(PowerBiAuthoringService.ApplyOperationsJson(body)).RootElement.Clone());
                 return;
             }
+            if (p == "/v1/pbip/projects" && c.Request.HttpMethod == "GET")
+            {
+                var projects = PbipService.FindProjects();
+                await Json(c, 200, new { ok = true, projects, count = projects.Count });
+                return;
+            }
+            if (p == "/v1/pbip/pages" && c.Request.HttpMethod == "POST")
+            {
+                var body = await ReadBody(c, PbipService.MaxBodyBytes);
+                using var doc = JsonDocument.Parse(body);
+                var projectPath = doc.RootElement.GetProperty("projectPath").GetString() ?? "";
+                var pages = PbipService.ListPages(projectPath);
+                await Json(c, 200, new { ok = true, pages });
+                return;
+            }
+            if (p == "/v1/pbip/page/read" && c.Request.HttpMethod == "POST")
+            {
+                var body = await ReadBody(c, PbipService.MaxBodyBytes);
+                using var doc = JsonDocument.Parse(body);
+                var pagePath = doc.RootElement.GetProperty("pagePath").GetString() ?? "";
+                var r = PbipService.ReadPage(pagePath);
+                if (!r.ok) { await Json(c, 404, new { ok = false, error = r.error }); return; }
+                await Json(c, 200, new { ok = true, pagePath, content = r.content });
+                return;
+            }
+            if (p == "/v1/pbip/page/write" && c.Request.HttpMethod == "POST")
+            {
+                var body = await ReadBody(c, PbipService.MaxBodyBytes);
+                using var doc = JsonDocument.Parse(body);
+                var pagePath = doc.RootElement.GetProperty("pagePath").GetString() ?? "";
+                var content = doc.RootElement.GetProperty("content").GetString() ?? "";
+                var w = PbipService.WritePage(pagePath, content);
+                if (!w.ok) { await Json(c, 500, new { ok = false, error = w.error, backupPath = w.backupPath }); return; }
+                await Json(c, 200, new { ok = true, backupPath = w.backupPath });
+                return;
+            }
             await Json(c, 404, new { ok = false, error = "not_found" });
         }
         catch (Exception ex)

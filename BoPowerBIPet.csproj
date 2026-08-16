@@ -27,6 +27,7 @@
   <ItemGroup>
     <Compile Remove="Contracts.Tests.cs" />
     <Compile Remove="HrSampleService.Tests.cs" />
+    <Compile Remove="PbipService.Tests.cs" />
     <Compile Remove="PowerBiAuthoringService.Tests.cs" />
   </ItemGroup>
 </Project>

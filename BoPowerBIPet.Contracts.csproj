@@ -12,6 +12,8 @@
     <Compile Include="Contracts.Tests.cs" />
     <Compile Include="HrSampleService.cs" />
     <Compile Include="HrSampleService.Tests.cs" />
+    <Compile Include="PbipService.cs" />
+    <Compile Include="PbipService.Tests.cs" />
     <Compile Include="PowerBiAuthoringService.cs" />
     <Compile Include="PowerBiAuthoringService.Tests.cs" />
   </ItemGroup>

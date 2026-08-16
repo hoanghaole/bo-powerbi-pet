@@ -22,10 +22,11 @@ static class ContractTests
         Assert(!BridgeCore.IsAuthorized(new WebHeaderCollection(), new string('b', 64)), "Thiếu Authorization bị từ chối");
         HrSampleServiceTests.Run();
         PowerBiAuthoringServiceTests.Run();
+        PbipServiceTests.Run();
         return 0;
     }
 
-    static void Assert(bool ok, string message)
+    internal static void Assert(bool ok, string message)
     {
         if (!ok) throw new Exception("FAIL: " + message);
         Console.WriteLine("PASS: " + message);

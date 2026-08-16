@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "dgSpecHash": "fdLbp+sYOcU=",
+  "success": true,
+  "projectFilePath": "/src/BoPowerBIPet.Contracts.csproj",
+  "expectedPackageFiles": [
+    "/root/.nuget/packages/microsoft.analysisservices.netcore.retail.amd64/19.84.1/microsoft.analysisservices.netcore.retail.amd64.19.84.1.nupkg.sha512",
+    "/root/.nuget/packages/microsoft.identity.client/4.56.0/microsoft.identity.client.4.56.0.nupkg.sha512",
+    "/root/.nuget/packages/microsoft.identitymodel.abstractions/6.22.0/microsoft.identitymodel.abstractions.6.22.0.nupkg.sha512"
+  ],
+  "logs": []
+}

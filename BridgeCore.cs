@@ -17,7 +17,11 @@ static class BridgeCore
         "/powerbi/dax",
         "/powerbi/hr-sample",
         "/v1/powerbi/model/inspect",
-        "/v1/powerbi/model/operations"
+        "/v1/powerbi/model/operations",
+        "/v1/pbip/projects",
+        "/v1/pbip/pages",
+        "/v1/pbip/page/read",
+        "/v1/pbip/page/write"
     };
 
     internal static string AppDir()
