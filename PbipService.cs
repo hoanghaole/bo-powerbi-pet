@@ -64,22 +64,25 @@ internal static class PbipService
     internal static List<PageInfo> ListPages(string projectPath)
     {
         var full = SafeFull(projectPath);
-        var reportDir = Path.Combine(Path.GetDirectoryName(full)!, "Report", "pages");
+        var projectDir = Path.GetDirectoryName(full)!;
         var pages = new List<PageInfo>();
-        if (!Directory.Exists(reportDir)) return pages;
-        foreach (var dir in Directory.EnumerateDirectories(reportDir))
+        foreach (var reportDir in new[] { Path.Combine(projectDir, "Report", "pages"), Path.Combine(projectDir, "Report", "definition", "pages") })
         {
-            var pageJson = Path.Combine(dir, "page.json");
-            if (!File.Exists(pageJson)) continue;
-            string displayName = Path.GetFileName(dir);
-            try
+            if (!Directory.Exists(reportDir)) continue;
+            foreach (var dir in Directory.EnumerateDirectories(reportDir))
             {
-                using var doc = JsonDocument.Parse(File.ReadAllText(pageJson));
-                if (doc.RootElement.TryGetProperty("displayName", out var dn) && dn.ValueKind == JsonValueKind.String)
-                    displayName = dn.GetString()!;
+                var pageJson = Path.Combine(dir, "page.json");
+                if (!File.Exists(pageJson)) continue;
+                string displayName = Path.GetFileName(dir);
+                try
+                {
+                    using var doc = JsonDocument.Parse(File.ReadAllText(pageJson));
+                    if (doc.RootElement.TryGetProperty("displayName", out var dn) && dn.ValueKind == JsonValueKind.String)
+                        displayName = dn.GetString()!;
+                }
+                catch { }
+                pages.Add(new PageInfo(Path.GetFileName(dir), displayName, pageJson));
             }
-            catch { }
-            pages.Add(new PageInfo(Path.GetFileName(dir), displayName, pageJson));
         }
         pages.Sort((a, b) => string.Compare(a.displayName, b.displayName, StringComparison.OrdinalIgnoreCase));
         return pages;
@@ -91,9 +94,12 @@ internal static class PbipService
         if (!full.EndsWith("page.json", StringComparison.OrdinalIgnoreCase)) return false;
         foreach (var proj in FindProjects())
         {
-            var pagesRoot = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(proj))!, "Report", "pages");
-            if (full.StartsWith(pagesRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
-                return true;
+            var projDir = Path.GetDirectoryName(Path.GetFullPath(proj))!;
+            foreach (var pagesRoot in new[] { Path.Combine(projDir, "Report", "pages"), Path.Combine(projDir, "Report", "definition", "pages") })
+            {
+                if (full.StartsWith(pagesRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
         }
         return false;
     }
