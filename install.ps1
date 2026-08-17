@@ -15,6 +15,9 @@ try {
   $actual = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
   if ($actual -ne $expected) { throw "SHA-256 không khớp: $actual" }
   Get-Process BoBIPet, BoPowerBIPet -ErrorAction SilentlyContinue | Stop-Process -Force
+  Start-Sleep -Seconds 3
+  # Retry đóng process phòng khi handle chưa nhả kịp
+  Get-Process BoBIPet, BoPowerBIPet -ErrorAction SilentlyContinue | Stop-Process -Force
   New-Item -ItemType Directory -Force $dir | Out-Null
   Remove-Item (Join-Path $dir 'access.txt') -Force -ErrorAction SilentlyContinue
   Expand-Archive $zip -DestinationPath $dir -Force
