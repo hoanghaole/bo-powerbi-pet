@@ -91,6 +91,7 @@ sealed class PetForm : Form
             Add($"Token: {token}");
             Add("Endpoint: GET /health, /powerbi/processes, /powerbi/listeners, /powerbi/model-summary; POST /powerbi/dax, /powerbi/hr-sample, /v1/powerbi/model/inspect, /v1/powerbi/model/operations");
             string cf = await EnsureCloudflared();
+            KillOldTunnels();
             StartTunnel(cf);
             State($"Bridge chạy tại localhost:{port}. Đang lấy URL Cloudflare…");
         }
@@ -134,21 +135,23 @@ sealed class PetForm : Form
                 c.Response.Close();
                 return;
             }
+
+            string p = c.Request.Url!.AbsolutePath;
+            // Health công khai: xác định instance/version/port không cần token
+            if (p == "/" || p == "/health")
+            {
+                await Json(c, 200, new { ok = true, service = BridgeCore.ServiceName, version = BridgeCore.Version, pid = Environment.ProcessId, time = DateTime.UtcNow, platform = "win32", auth = "bearer", port });
+                return;
+            }
             if (!BridgeCore.IsAuthorized(c.Request, token))
             {
                 await Json(c, 401, new { ok = false, error = "unauthorized" });
                 return;
             }
 
-            string p = c.Request.Url!.AbsolutePath;
             if (!BridgeCore.IsAllowedRoute(p, c.Request.HttpMethod))
             {
                 await Json(c, 404, new { ok = false, error = "not_found" });
-                return;
-            }
-            if (p == "/" || p == "/health")
-            {
-                await Json(c, 200, new { ok = true, service = BridgeCore.ServiceName, time = DateTime.UtcNow, platform = "win32", auth = "bearer", port });
                 return;
             }
             if (p == "/powerbi/processes") { await PsJson(c, Scripts.Processes); return; }
@@ -334,6 +337,19 @@ sealed class PetForm : Form
         tunnel.BeginErrorReadLine();
     }
 
+    // Dọn mọi tunnel cloudflared cũ (bridge PowerShell cũ thường tự khởi động lại sau reset)
+    static void KillOldTunnels()
+    {
+        try
+        {
+            foreach (var pr in Process.GetProcessesByName("cloudflared"))
+            {
+                try { pr.Kill(true); } catch { }
+            }
+        }
+        catch { }
+    }
+
     void Line(object? s, DataReceivedEventArgs e)
     {
         if (e.Data == null) return;
@@ -342,6 +358,12 @@ sealed class PetForm : Form
         if (m.Success)
         {
             publicUrl = m.Value;
+            try
+            {
+                // Ghi access.txt để Ba/Bơ lấy URL + token mà không cần copy từ cửa sổ
+                File.WriteAllText(Path.Combine(BridgeCore.AppDir(), "access.txt"), $"{publicUrl}\r\n{token}\r\n");
+            }
+            catch { }
             State($"Sẵn sàng\n{publicUrl}\nBấm nút dưới để copy URL + token\nLocal: http://localhost:{port}");
             BeginInvoke(() => copy.BackColor = Color.LightGreen);
         }

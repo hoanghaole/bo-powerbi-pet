@@ -7,6 +7,7 @@ using System.Text.Json;
 static class BridgeCore
 {
     internal const string ServiceName = "powerbi-bridge-pet";
+    internal const string Version = "4.2.0";
     internal static readonly HashSet<string> AllowedRoutes = new(StringComparer.OrdinalIgnoreCase)
     {
         "/",
@@ -63,6 +64,19 @@ static class BridgeCore
 
     internal static int PickFreePort()
     {
+        // Ưu tiên dải port cố định để dễ truy vết (tunnel/security check)
+        foreach (var port in new[] { 49739, 49740, 49741, 49742, 49743 })
+        {
+            try
+            {
+                var probe = new TcpListener(IPAddress.Loopback, port);
+                probe.Start();
+                probe.Stop();
+                return port;
+            }
+            catch { }
+        }
+        // fallback: port ngẫu nhiên
         var listener = new TcpListener(IPAddress.Loopback, 0);
         listener.Start();
         try

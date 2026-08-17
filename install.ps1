@@ -16,6 +16,7 @@ try {
   if ($actual -ne $expected) { throw "SHA-256 không khớp: $actual" }
   Get-Process BoBIPet, BoPowerBIPet -ErrorAction SilentlyContinue | Stop-Process -Force
   New-Item -ItemType Directory -Force $dir | Out-Null
+  Remove-Item (Join-Path $dir 'access.txt') -Force -ErrorAction SilentlyContinue
   Expand-Archive $zip -DestinationPath $dir -Force
   $exe = Join-Path $dir 'BoBIPet.exe'
   if (-not (Test-Path $exe)) { throw 'Không tìm thấy BoBIPet.exe sau giải nén.' }
