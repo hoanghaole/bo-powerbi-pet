@@ -1,2 +1,0 @@
-/src/publish/win-x64/BoBIPet.pdb
-/src/publish/win-x64/BoBIPet.exe

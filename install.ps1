@@ -14,13 +14,27 @@ try {
   $expected = ((Get-Content $sums -Raw) -split '\s+')[0].ToLowerInvariant()
   $actual = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
   if ($actual -ne $expected) { throw "SHA-256 không khớp: $actual" }
-  Get-Process BoBIPet, BoPowerBIPet -ErrorAction SilentlyContinue | Stop-Process -Force
+  Get-Process BoBIPet, BoPowerBIPet -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
   Start-Sleep -Seconds 3
   # Retry đóng process phòng khi handle chưa nhả kịp
-  Get-Process BoBIPet, BoPowerBIPet -ErrorAction SilentlyContinue | Stop-Process -Force
+  Get-Process BoBIPet, BoPowerBIPet -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+  Start-Sleep -Seconds 1
+  # Nếu vẫn còn process sống, thử TaskKill /T /F (kill cả cây con)
+  if (Get-Process BoBIPet, BoPowerBIPet -ErrorAction SilentlyContinue) {
+    Start-Sleep -Seconds 2
+    taskkill /F /T /IM BoBIPet.exe /IM BoPowerBIPet.exe 2>$null | Out-Null
+    Start-Sleep -Seconds 2
+  }
+  # Fallback: nếu file exe cũ vẫn bị lock, đổi tên nó (rename không cần quyền ghi đè file đang chạy)
+  $oldExe = Join-Path $dir 'BoBIPet.exe'
+  if ((Test-Path $oldExe) -and $ENV:OS -eq 'Windows_NT') {
+    try { Rename-Item $oldExe ($oldExe + '.old') -Force -ErrorAction Stop } catch { }
+  }
   New-Item -ItemType Directory -Force $dir | Out-Null
   Remove-Item (Join-Path $dir 'access.txt') -Force -ErrorAction SilentlyContinue
   Expand-Archive $zip -DestinationPath $dir -Force
+  # Dọn exe cũ đã rename
+  Remove-Item ($oldExe + '.old') -Force -ErrorAction SilentlyContinue
   $exe = Join-Path $dir 'BoBIPet.exe'
   if (-not (Test-Path $exe)) { throw 'Không tìm thấy BoBIPet.exe sau giải nén.' }
   $desktop = [Environment]::GetFolderPath('Desktop')

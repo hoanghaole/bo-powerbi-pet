@@ -126,6 +126,7 @@ sealed class PetForm : Form
     {
         try
         {
+            c.Response.Headers["Access-Control-Allow-Origin"] = "*";
             c.Response.Headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type";
             c.Response.Headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS";
             c.Response.ContentType = "application/json; charset=utf-8";
@@ -194,7 +195,7 @@ sealed class PetForm : Form
             }
             if (p == "/v1/pbip/projects" && c.Request.HttpMethod == "GET")
             {
-                var projects = PbipService.FindProjects();
+                var projects = PbipService.FindProjects(force: true);  // không cache cũ — project mới lưu phải hiện ngay
                 await Json(c, 200, new { ok = true, projects, count = projects.Count });
                 return;
             }
@@ -337,14 +338,23 @@ sealed class PetForm : Form
         tunnel.BeginErrorReadLine();
     }
 
-    // Dọn mọi tunnel cloudflared cũ (bridge PowerShell cũ thường tự khởi động lại sau reset)
+    // Dọn tunnel cloudflared CŨ của chính app — chỉ kill bản nằm trong AppDir của BoBIPet (bản app tự tải về)
+    // Cloudflared của Ba dùng cho việc khác (nằm chỗ khác) sẽ không bị đụng tới
     static void KillOldTunnels()
     {
         try
         {
+            var appDir = BridgeCore.AppDir();
             foreach (var pr in Process.GetProcessesByName("cloudflared"))
             {
-                try { pr.Kill(true); } catch { }
+                try
+                {
+                    var exe = pr.MainModule?.FileName ?? "";
+                    // MainModule.FileName trả full path exe — cloudflared của app luôn ở AppDir
+                    if (exe.StartsWith(appDir, StringComparison.OrdinalIgnoreCase))
+                        pr.Kill(true);
+                }
+                catch { }
             }
         }
         catch { }

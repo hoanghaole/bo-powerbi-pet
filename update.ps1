@@ -1,11 +1,17 @@
 $ErrorActionPreference = 'Stop'
-$script = Invoke-RestMethod 'https://raw.githubusercontent.com/hoanghaole/bo-powerbi-pet/main/install.ps1' -Headers @{ 'User-Agent' = 'BoBIPet-updater' }
+# Lấy tag release mới nhất (không dùng main — tránh script lệch version với app)
+$repo = 'hoanghaole/bo-powerbi-pet'
+$headers = @{ 'User-Agent' = 'BoBIPet-updater' }
+$release = Invoke-RestMethod "https://api.github.com/repos/$repo/releases/latest" -Headers $headers
+$tag = $release.tag_name
+Write-Host "Cập nhật BoBIPet lên $tag ..." -ForegroundColor Cyan
+$script = Invoke-RestMethod "https://raw.githubusercontent.com/$repo/$tag/install.ps1" -Headers $headers
 & ([scriptblock]::Create($script))
 
 # Đợi app ghi access.txt (URL + token) rồi in ra — khỏi bấm nút Copy
 $dir = Join-Path $env:LOCALAPPDATA 'BoBIPet'
 $acc = Join-Path $dir 'access.txt'
-for ($i = 0; $i -lt 45; $i++) {
+for ($i = 0; $i -lt 60; $i++) {
   Start-Sleep -Seconds 1
   if (Test-Path $acc) {
     Write-Host ''

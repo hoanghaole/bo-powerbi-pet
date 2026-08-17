@@ -40,8 +40,9 @@ internal static class PbipService
                 {
                     RecurseSubdirectories = true,
                     IgnoreInaccessible = true,
-                    MaxRecursionDepth = 8,
-                    AttributesToSkip = FileAttributes.ReparsePoint
+                    MaxRecursionDepth = 16,
+                    // KHÔNG đặt AttributesToSkip: mặc định Hidden|System, không skip ReparsePoint
+                    // (OneDrive online-only đánh dấu bằng ReparsePoint — skip là mất project)
                 }))
                 {
                     if (f.Contains("node_modules", StringComparison.OrdinalIgnoreCase)) continue;
@@ -112,11 +113,39 @@ internal static class PbipService
                     if (doc.RootElement.TryGetProperty("displayName", out var dn) && dn.ValueKind == JsonValueKind.String)
                         displayName = dn.GetString()!;
                 }
-                catch { }
+                catch { continue; }  // page.json rỗng/corrupt → bỏ qua, không hiện tên folder
                 pages.Add(new PageInfo(Path.GetFileName(dir), displayName, pageJson));
             }
         }
-        pages.Sort((a, b) => string.Compare(a.displayName, b.displayName, StringComparison.OrdinalIgnoreCase));
+        // Sắp theo pageOrder từ pagesMetadata.json nếu có (PBIR schema), fallback displayName
+        var order = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var pagesRoot in new[] { Path.Combine(reportDir, "definition", "pages"), Path.Combine(reportDir, "pages") })
+        {
+            var meta = Path.Combine(pagesRoot, "pagesMetadata.json");
+            if (!File.Exists(meta)) continue;
+            try
+            {
+                using var doc = JsonDocument.Parse(File.ReadAllText(meta));
+                if (doc.RootElement.TryGetProperty("pages", out var arr) && arr.ValueKind == JsonValueKind.Array)
+                {
+                    int i = 0;
+                    foreach (var e in arr.EnumerateArray())
+                    {
+                        if (e.TryGetProperty("pageId", out var id) && id.ValueKind == JsonValueKind.String)
+                            order[id.GetString()!] = i;
+                        i++;
+                    }
+                }
+            }
+            catch { }
+        }
+        pages.Sort((a, b) =>
+        {
+            if (order.TryGetValue(a.name, out var oa) && order.TryGetValue(b.name, out var ob)) return oa.CompareTo(ob);
+            if (order.TryGetValue(a.name, out oa)) return -1;
+            if (order.TryGetValue(b.name, out ob)) return 1;
+            return string.Compare(a.displayName, b.displayName, StringComparison.OrdinalIgnoreCase);
+        });
         return pages;
     }
 
@@ -151,15 +180,30 @@ internal static class PbipService
         var full = SafeFull(pagePath);
         if (!IsKnownPagePath(full)) return (false, null, "page_path_outside_known_project");
         if (!File.Exists(full)) return (false, null, "page_not_found");
-        var backup = full + ".bak-" + DateTime.Now.ToString("yyyyMMdd-HHmmss");
+        // Validate JSON trước khi ghi — chặn content rác làm hỏng project
+        try { using var _ = JsonDocument.Parse(content); }
+        catch (Exception ex) { return (false, null, $"invalid_json: {ex.Message}"); }
+        var backup = full + ".bak-" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + "-" + Guid.NewGuid().ToString("N")[..6];
         try
         {
             File.Copy(full, backup, overwrite: false);
-            File.WriteAllText(full, content, new UTF8Encoding(false));
+            // Ghi atomic: temp + rename — crash giữa chừng không làm hỏng file gốc
+            var tmp = full + ".tmp-" + Guid.NewGuid().ToString("N")[..8];
+            File.WriteAllText(tmp, content, new UTF8Encoding(false));
+            File.Move(tmp, full, overwrite: true);
+            // Giữ tối đa 5 backup gần nhất
+            try
+            {
+                var old = Directory.GetFiles(Path.GetDirectoryName(full)!, Path.GetFileName(full) + ".bak-*")
+                    .OrderByDescending(f => f).Skip(5).ToArray();
+                foreach (var f in old) File.Delete(f);
+            }
+            catch { }
             return (true, backup, null);
         }
         catch (Exception ex)
         {
+            try { if (File.Exists(full + ".tmp-*")) { } } catch { }
             return (false, backup, ex.Message);
         }
     }
