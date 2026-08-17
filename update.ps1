@@ -1,11 +1,19 @@
 $ErrorActionPreference = 'Stop'
-# Lấy tag release mới nhất (không dùng main — tránh script lệch version với app)
+# Tải install.ps1 — ưu tiên jsDelivr CDN (không bị rate limit raw.githubusercontent), fallback raw
 $repo = 'hoanghaole/bo-powerbi-pet'
-$headers = @{ 'User-Agent' = 'BoBIPet-updater' }
-$release = Invoke-RestMethod "https://api.github.com/repos/$repo/releases/latest" -Headers $headers
-$tag = $release.tag_name
-Write-Host "Cập nhật BoBIPet lên $tag ..." -ForegroundColor Cyan
-$script = Invoke-RestMethod "https://raw.githubusercontent.com/$repo/$tag/install.ps1" -Headers $headers
+$script = $null
+foreach ($u in @(
+  "https://cdn.jsdelivr.net/gh/$repo@main/install.ps1",
+  "https://raw.githubusercontent.com/$repo/main/install.ps1"
+)) {
+  try {
+    $script = Invoke-RestMethod $u -Headers @{ 'User-Agent' = 'BoBIPet-updater' }
+    break
+  } catch {
+    Write-Host "Thử nguồn khác (429/thất bại): $u" -ForegroundColor DarkGray
+  }
+}
+if (-not $script) { throw 'Không tải được install.ps1 (jsDelivr + raw đều lỗi). Thử lại sau 5 phút.' }
 & ([scriptblock]::Create($script))
 
 # Đợi app ghi access.txt (URL + token) rồi in ra — khỏi bấm nút Copy
