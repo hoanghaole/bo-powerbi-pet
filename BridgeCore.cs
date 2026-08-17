@@ -7,7 +7,7 @@ using System.Text.Json;
 static class BridgeCore
 {
     internal const string ServiceName = "powerbi-bridge-pet";
-    internal const string Version = "4.2.0";
+    internal const string Version = "4.2.1";
     internal static readonly HashSet<string> AllowedRoutes = new(StringComparer.OrdinalIgnoreCase)
     {
         "/",

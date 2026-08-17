@@ -61,10 +61,16 @@ internal static class PbipService
 
     internal sealed record PageInfo(string name, string displayName, string path);
 
-    internal static List<PageInfo> ListPages(string projectPath)
+    // .pbip là thư mục (không phải file) — projectDir = chính projectPath nếu nó là folder
+    internal static string ProjectDir(string projectPath)
     {
         var full = SafeFull(projectPath);
-        var projectDir = Path.GetDirectoryName(full)!;
+        return Directory.Exists(full) ? full : Path.GetDirectoryName(full)!;
+    }
+
+    internal static List<PageInfo> ListPages(string projectPath)
+    {
+        var projectDir = ProjectDir(projectPath);
         var pages = new List<PageInfo>();
         foreach (var reportDir in new[] { Path.Combine(projectDir, "Report", "pages"), Path.Combine(projectDir, "Report", "definition", "pages") })
         {
@@ -94,7 +100,7 @@ internal static class PbipService
         if (!full.EndsWith("page.json", StringComparison.OrdinalIgnoreCase)) return false;
         foreach (var proj in FindProjects())
         {
-            var projDir = Path.GetDirectoryName(Path.GetFullPath(proj))!;
+            var projDir = ProjectDir(proj);
             foreach (var pagesRoot in new[] { Path.Combine(projDir, "Report", "pages"), Path.Combine(projDir, "Report", "definition", "pages") })
             {
                 if (full.StartsWith(pagesRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
