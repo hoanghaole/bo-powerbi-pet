@@ -61,21 +61,47 @@ internal static class PbipService
 
     internal sealed record PageInfo(string name, string displayName, string path);
 
-    // .pbip là thư mục (không phải file) — projectDir = chính projectPath nếu nó là folder
-    internal static string ProjectDir(string projectPath)
+    // PBIP project: file .pbip đứng cạnh folder <Tên>.Report (PBIP mới) hoặc Report/ (cũ)
+    // Có thể nhận: path tới file .pbip, hoặc path tới thư mục project
+    internal static string? FindReportDir(string projectPath)
     {
-        var full = SafeFull(projectPath);
-        return Directory.Exists(full) ? full : Path.GetDirectoryName(full)!;
+        var full = SafeFull(projectPath).TrimEnd('\\', '/');
+        string projectDir;
+        string baseName;
+        if (Directory.Exists(full))
+        {
+            projectDir = full;
+            baseName = Path.GetFileName(full);
+            if (baseName.EndsWith(".pbip", StringComparison.OrdinalIgnoreCase))
+                baseName = baseName[..^5];
+        }
+        else
+        {
+            projectDir = Path.GetDirectoryName(full) ?? full;
+            baseName = Path.GetFileNameWithoutExtension(full);
+        }
+        foreach (var candidate in new[]
+        {
+            Path.Combine(projectDir, baseName + ".Report"),   // PBIP mới: <Tên>.Report
+            Path.Combine(projectDir, "Report"),                // PBIP cũ: Report
+            Path.Combine(full, baseName + ".Report"),          // folder project chứa <Tên>.Report
+            Path.Combine(full, "Report")
+        })
+        {
+            if (Directory.Exists(candidate)) return candidate;
+        }
+        return null;
     }
 
     internal static List<PageInfo> ListPages(string projectPath)
     {
-        var projectDir = ProjectDir(projectPath);
+        var reportDir = FindReportDir(projectPath);
+        if (reportDir == null) return new List<PageInfo>();
         var pages = new List<PageInfo>();
-        foreach (var reportDir in new[] { Path.Combine(projectDir, "Report", "pages"), Path.Combine(projectDir, "Report", "definition", "pages") })
+        foreach (var pagesRoot in new[] { Path.Combine(reportDir, "definition", "pages"), Path.Combine(reportDir, "pages") })
         {
-            if (!Directory.Exists(reportDir)) continue;
-            foreach (var dir in Directory.EnumerateDirectories(reportDir))
+            if (!Directory.Exists(pagesRoot)) continue;
+            foreach (var dir in Directory.EnumerateDirectories(pagesRoot))
             {
                 var pageJson = Path.Combine(dir, "page.json");
                 if (!File.Exists(pageJson)) continue;
@@ -100,8 +126,9 @@ internal static class PbipService
         if (!full.EndsWith("page.json", StringComparison.OrdinalIgnoreCase)) return false;
         foreach (var proj in FindProjects())
         {
-            var projDir = ProjectDir(proj);
-            foreach (var pagesRoot in new[] { Path.Combine(projDir, "Report", "pages"), Path.Combine(projDir, "Report", "definition", "pages") })
+            var reportDir = FindReportDir(proj);
+            if (reportDir == null) continue;
+            foreach (var pagesRoot in new[] { Path.Combine(reportDir, "definition", "pages"), Path.Combine(reportDir, "pages") })
             {
                 if (full.StartsWith(pagesRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
                     return true;
