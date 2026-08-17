@@ -86,7 +86,10 @@ static class BridgeCore
         if (path.Equals("/powerbi/dax", StringComparison.OrdinalIgnoreCase)
             || path.Equals("/powerbi/hr-sample", StringComparison.OrdinalIgnoreCase)
             || path.Equals("/v1/powerbi/model/inspect", StringComparison.OrdinalIgnoreCase)
-            || path.Equals("/v1/powerbi/model/operations", StringComparison.OrdinalIgnoreCase))
+            || path.Equals("/v1/powerbi/model/operations", StringComparison.OrdinalIgnoreCase)
+            || path.Equals("/v1/pbip/pages", StringComparison.OrdinalIgnoreCase)
+            || path.Equals("/v1/pbip/page/read", StringComparison.OrdinalIgnoreCase)
+            || path.Equals("/v1/pbip/page/write", StringComparison.OrdinalIgnoreCase))
             return method.Equals("POST", StringComparison.OrdinalIgnoreCase);
 
         return AllowedRoutes.Contains(path) && method.Equals("GET", StringComparison.OrdinalIgnoreCase);
